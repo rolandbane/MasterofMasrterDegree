@@ -1,0 +1,46 @@
+INLET
+    {
+        type            codedFixedValue;
+        redirectType    rampedFixedValue;
+        
+        code
+        #{
+            const fvPatch& boundaryPatch = this->patch();
+            vectorField U = boundaryPatch.Cf();
+            vectorField u = boundaryPatch.Cf();
+            
+            scalar Uave = 9.65;
+            scalar dU = 12.3;
+            scalar deltaW = 0.0002;
+            scalar C0 = 0.1;
+            
+            label index = this->db().time().timeIndex();
+            Random perturbation(index);      
+
+            forAll(boundaryPatch, faceI)
+            {   
+                vector deviation
+                (
+                    1.0 - 2.0*perturbation.scalar01(),
+                    1.0 - 2.0*perturbation.scalar01(),
+                    1.0 - 2.0*perturbation.scalar01()
+                );
+                //Info << "random: " << deviation << endl;
+                
+                scalar y = boundaryPatch.Cf()[faceI].y();
+                U[faceI] = vector(Uave + dU*tanh(2*y/deltaW)/2, 0, 0);
+                
+                u[faceI] = C0*dU*deviation*exp(-sqr(y)/(2*deltaW));
+            }
+
+            operator==(U+u);
+        #};
+        
+        codeInclude
+        #{
+            #include "Random.H"
+        #};
+        
+        value           $internalField;
+
+    }
